@@ -32,6 +32,7 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     private final String API_KEY = "AIzaSyD65aKcH2xtNRnxMmwDy4knEu1_GHsaJTk";
     private String address;
     private float lng, lat;
+    private String placeId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,6 +98,7 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
                             JSONObject results = array.getJSONObject(0);
                             JSONObject geometry = results.getJSONObject("geometry");
                             JSONObject location = geometry.getJSONObject("location");
+
                             lat = (float) location.getDouble("lat");
                             lng = (float) location.getDouble("lng");
                             runOnUiThread(new Runnable() {
@@ -117,5 +119,12 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
         }
         );
         queue.add(jsonRequest);
+    }
+
+    public void onClick() {
+        Intent i = new Intent(DisplayMapActivity.this, NearbyPlacesActivity.class);
+        i.putExtra("lat", lat);
+        i.putExtra("lng", lng);
+        startActivity(i);
     }
 }

@@ -32,6 +32,7 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     private final String API_KEY = "AIzaSyD65aKcH2xtNRnxMmwDy4knEu1_GHsaJTk";
     private String address;
     private float lng, lat;
+    private String title;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,14 +52,16 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
         getRequest(url);
     }
 
-    private void updateMapLocation(float lng, float lat) {
+    private void updateMapLocation(float lng, float lat, String title) {
         LatLng coord = new LatLng(lat,lng);
         CameraUpdate newCamera = CameraUpdateFactory.newLatLng(coord);
         CameraUpdate animate = CameraUpdateFactory.zoomTo(15);
         MarkerOptions marker = new MarkerOptions();
         marker.position(coord);
+        marker.title(title);
+
         map.moveCamera(newCamera);
-        map.addMarker(marker);
+        map.addMarker(marker).showInfoWindow();
         map.animateCamera(animate);
     }
 
@@ -97,12 +100,13 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
                             JSONObject results = array.getJSONObject(0);
                             JSONObject geometry = results.getJSONObject("geometry");
                             JSONObject location = geometry.getJSONObject("location");
+                            title = results.getString("formatted_address");
                             lat = (float) location.getDouble("lat");
                             lng = (float) location.getDouble("lng");
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    updateMapLocation(lng,lat);
+                                    updateMapLocation(lng,lat,title);
                                 }
                             });
                         } catch (JSONException e) {

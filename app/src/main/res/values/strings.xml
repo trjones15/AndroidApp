@@ -2,4 +2,5 @@
     <string name="app_name">Maps</string>
     <string name="edit_message">Enter a address</string>
     <string name="button_send">Find</string>
+    <string name="show_restaurants">Show Restaurants</string>
 </resources>

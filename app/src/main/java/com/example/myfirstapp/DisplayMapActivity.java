@@ -70,9 +70,9 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
 
     private StringBuilder parseStringForUrl(String message) {
         String[] parsedMessage = message.split(" ");
+
         //this should handle the fencepost error
         StringBuilder request = new StringBuilder();
-        //String request = parsedMessage[0];
         if(!parsedMessage[0].equals("")) {
             request.append(parsedMessage[0]);
             for (int i = 1; i < parsedMessage.length; i++) {
@@ -130,6 +130,7 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     private void showNearbyRestaurants() {
+        //populates nearbyRestaurants
         getNearbyRestaurantRequest();
 
         //place Points of interest on the map

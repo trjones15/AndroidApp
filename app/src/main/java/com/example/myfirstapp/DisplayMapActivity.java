@@ -26,6 +26,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+
 public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyCallback{
 
     private GoogleMap map;
@@ -33,6 +35,9 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     private String address;
     private float lng, lat;
     private String placeId;
+    private ArrayList<PointOfInterest> nearbyRestaurants;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -122,9 +127,66 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     public void onClick() {
-        Intent i = new Intent(DisplayMapActivity.this, NearbyPlacesActivity.class);
-        i.putExtra("lat", lat);
-        i.putExtra("lng", lng);
-        startActivity(i);
+    }
+
+    private void showNearbyRestaurants() {
+        getNearbyRestaurantRequest();
+
+        //place Points of interest on the map
+
+    }
+
+    private void getNearbyRestaurantRequest() {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, buildUrl(),
+                (JSONObject) null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray array = response.getJSONArray("results");
+
+                            for(int i = 0; i < array.length() && i < 5; i++) {
+                                JSONObject result = array.getJSONObject(i);
+                                JSONObject geometry = result.getJSONObject("geometry");
+                                JSONObject location = geometry.getJSONObject("location");
+
+                                PointOfInterest p = new PointOfInterest();
+                                p.name = result.getString("name");
+                                p.lat = (float) location.getDouble("lat");
+                                p.lng = (float) location.getDouble("lng");
+
+                                nearbyRestaurants.add(p);
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //updateMapLocation(lng,lat);
+                                }
+                            });
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //error handling happens here
+            }
+        }
+        );
+        queue.add(jsonRequest);
+    }
+
+    private String buildUrl() {
+        return "https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurant&location=" +
+                lat + "," + lng + "&radius=10000&key=" + API_KEY;
+    }
+
+    //inner class
+    private class PointOfInterest {
+        public float lat;
+        public float lng;
+        public String name;
     }
 }

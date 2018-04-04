@@ -213,7 +213,7 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
 
     private String buildUrl() {
         return "https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurant&location=" +
-                lat + "," + lng + "&radius=10000&key=" + API_KEY;
+                lat + "," + lng + "&radius=5000&key=" + API_KEY;
     }
 
     //inner class

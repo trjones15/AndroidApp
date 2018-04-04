@@ -4,6 +4,9 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,12 +22,16 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyCallback{
 
@@ -33,6 +40,11 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
     private String address;
     private float lng, lat;
     private String title;
+
+    private String placeId;
+    private ArrayList<PointOfInterest> nearbyRestaurants = new ArrayList<PointOfInterest>();
+    private LatLngBounds.Builder builder = new LatLngBounds.Builder();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,9 +52,15 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
         address = getIntent().getStringExtra(MainActivity.EXTRA_MESSAGE);
 
         setContentView(R.layout.activity_display_map);
-        MapFragment mapFragment = (MapFragment) getFragmentManager()
-                .findFragmentById(R.id.map);
+        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_display_map, menu);
+        return true;
     }
 
     @Override
@@ -61,15 +79,18 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
         marker.title(title);
 
         map.moveCamera(newCamera);
-        map.addMarker(marker).showInfoWindow();
+
+        Marker m = map.addMarker(marker);
+        m.showInfoWindow();
         map.animateCamera(animate);
+        builder.include(marker.getPosition());
     }
 
     private StringBuilder parseStringForUrl(String message) {
         String[] parsedMessage = message.split(" ");
+
         //this should handle the fencepost error
         StringBuilder request = new StringBuilder();
-        //String request = parsedMessage[0];
         if(!parsedMessage[0].equals("")) {
             request.append(parsedMessage[0]);
             for (int i = 1; i < parsedMessage.length; i++) {
@@ -121,5 +142,84 @@ public class DisplayMapActivity extends AppCompatActivity implements OnMapReadyC
         }
         );
         queue.add(jsonRequest);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.show_restaurants:
+                getNearbyRestaurantRequest();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void addRestaurants() {
+        if(nearbyRestaurants == null) return;
+        //add markers
+        for(PointOfInterest p: nearbyRestaurants) {
+            Marker marker = map.addMarker(new MarkerOptions().position(new LatLng(p.lat,p.lng)));
+            marker.setTitle(p.name);
+            builder.include(marker.getPosition());
+        }
+        //refocus camera to show all restaurants
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(builder.build(),150);
+        map.animateCamera(cameraUpdate);
+    }
+
+    private void getNearbyRestaurantRequest() {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.GET, buildUrl(),
+                (JSONObject) null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray array = response.getJSONArray("results");
+                            Log.d("debugs",array.toString());
+
+                            for(int i = 0; i < array.length() && i < 5; i++) {
+                                JSONObject result = array.getJSONObject(i);
+                                JSONObject geometry = result.getJSONObject("geometry");
+                                JSONObject location = geometry.getJSONObject("location");
+
+                                PointOfInterest p = new PointOfInterest();
+                                p.name = result.getString("name");
+                                p.lat = (float) location.getDouble("lat");
+                                p.lng = (float) location.getDouble("lng");
+
+                                nearbyRestaurants.add(p);
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    addRestaurants();
+                                }
+                            });
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //error handling happens here
+            }
+        }
+        );
+        queue.add(jsonRequest);
+    }
+
+    private String buildUrl() {
+        return "https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurant&location=" +
+                lat + "," + lng + "&radius=10000&key=" + API_KEY;
+    }
+
+    //inner class
+    private class PointOfInterest {
+        public float lat;
+        public float lng;
+        public String name;
     }
 }
